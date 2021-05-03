@@ -1,3 +1,4 @@
+---
 Parameters:
   NameOfService:
     Description: The tag name associated with this EC2 instances.
@@ -5,12 +6,15 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access into the server
     Type: AWS::EC2::KeyPair::KeyName
-# VpcId:
-#   Description: Enter vpc Id
-#   Type: AWS::EC2::VPC::Id
-#   SubnetId:
-#   Description: Subnet Id
-#   Type: AWS::EC2::Subnet::Id
+  VpcId:
+   Description: Enter vpc Id
+   Type: 'AWS::EC2::VPC::Id'
+   ConstraintDescription: Must be the valid vpc
+  SubnetId:
+   Description: Subnet Id
+   Type: 'AWS::EC2::Subnet::Id'
+   ConstraintDescription: must be the valid subnet id
+
 
 Mappings:
   RegionMap:
@@ -40,6 +44,7 @@ Resources:
         - !Ref LnSecurityGroup
 #       - !Ref SubnetId
       KeyName: !Ref KeyName
+
   LnEc2InstanceWebServer2:
     Type: AWS::EC2::Instance
     Properties:
@@ -76,7 +81,12 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       InstanceType: t2.micro
-      ImageId: "ami-01e36b7901e884a10"
+      ImageId:
+        Fn::FindInMap:
+          - RegionMap
+          - !Ref AWS::Region
+          - AMI
+
 
 
 
@@ -109,6 +119,14 @@ Resources:
         FromPort: 3000
         ToPort: 3000
         CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 3005
+        ToPort: 3005
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
           Value: ansible-core-keypair
@@ -131,19 +149,15 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       InstanceId: !Ref LnEC2InstanceNGINXLoadbalancer
+  
 Outputs:
   LnPublicIpAddressInstance1:
     Description: The Public IP address for EC2 instances
     Value: !GetAtt
       - LnEc2InstanceWebServer1
       - PublicIp
-  InstanceDns:
-    Description: PuplicDns name
-    Value: !GetAtt
 
-              - LnEc2InstanceWebServer3
 
-              - PublicDnsName
   LnPublicIpAddressInstance2:
     Description: The Public IP address for EC2 instances
     Value: !GetAtt
