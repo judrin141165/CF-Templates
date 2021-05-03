@@ -1,0 +1,59 @@
+
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Craete S3 bucket
+Parameters:
+  NameOfService:
+    Description: Tagname assosiated with S3 Bucket
+    Type: String
+
+
+
+Resources:
+  S3Bucket:
+     Type: 'AWS::S3::Bucket'
+     Properties:
+
+        BucketName: judrinbucket
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: 'aws:kms'
+                KMSMasterKeyID: KMS-KEY-ARN
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+        Tags:
+          - Key: name
+            Value: !Ref NameOfService
+  EC2Instance:
+     Type: 'AWS::EC2::Instance'
+     Properties:
+        InstanceType: t2.micro
+
+
+     DeletionPolicy: Delete
+
+
+
+
+
+
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt
+      - S3Bucket
+      - WebsiteURL
+
+
+
+
+
+
+
+
+
+
+
+

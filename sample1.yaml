@@ -1,0 +1,39 @@
+---
+Resources:
+  Ec2Instance:
+    Type: 'AWS::EC2::Instance'
+    Properties:
+      InstanceType: t2.micro
+      ImageId: ami-042e8287309f5df03 # ubuntu ami
+
+
+      Tags:
+        - Key: name
+          Value: !Join ["", [EC2, Instance,with, Fn, Join]]
+      SecurityGroups:
+        - !Ref MySecurityGroup
+
+
+
+  MysS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties:
+      BucketName: judrinwebsite
+      AccessControl: PublicRead
+      WebsiteConfiguration:
+        IndexDocument: index.html
+  MySecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+       GroupDescription: Enable ssh access via port 22
+       SecurityGroupIngress:
+         - IpProtocol: tcp
+           FromPort: '22'
+           ToPort: '22'
+
+
+
+
+
+
+
