@@ -1,11 +1,19 @@
 
 ---
 AWSTemplateFormatVersion: "2010-09-09"
-Description: Craete S3 bucket
+Description: Create Stack
 Parameters:
   NameOfService:
-    Description: Tagname assosiated with S3 Bucket
+    Description: Tagname assosiated with this stack
     Type: String
+  KeyName:
+    Description: Name of existing SSH keypair
+    Type: AWS::EC2::KeyPair::KeyName
+
+  DBClass:
+    Description: DB instance class
+    Type: String
+    Default: db.t1.micro
 
 
 
@@ -31,9 +39,36 @@ Resources:
      Type: 'AWS::EC2::Instance'
      Properties:
         InstanceType: t2.micro
+        ImageId: ami-077e31c4939f6a2f3
+        InstanceInitiatedShutdownBehavior: stop
+        Tags:
+          - Key: Name
+            Value: !Ref NameOfService
+        KeyName: !Ref KeyName
+        SecurityGroups:
+           - default
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceClass: !Ref DBClass
 
 
-     DeletionPolicy: Delete
+  ElasticIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref EC2Instance
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -45,7 +80,10 @@ Outputs:
     Value: !GetAtt
       - S3Bucket
       - WebsiteURL
-
+  PublicIPinstance:
+    Value: !GetAtt
+      - EC2Instance
+      - PublicIp
 
 
 

@@ -11,20 +11,36 @@ Mappings:
       AMI: ami-0ff8a91507f77f867
 
 Resources:
-  AWS inastance Loadbalancer:
-    Type: AWS::ElasticLoadBalancing::LoadBalancer
+  myloadbalancer:
+    Type: 'AWS::ElasticLoadBalancing::LoadBalancer'
     Properties:
       Instances: !Ref AWS::Region
+      Scheme: internet-facing
+      AvailabilityZones:
+
       Listeners:
-        - InstancePort: 80
+        - InstancePort: '80'
           InstanceProtocol: http
+          LoadBalancerPort: '443'
+          Protocol: https
+      LoadBalancerName: myelb
+
+
+  LnElasticIp1:
+    Type: AWS::EC2::EIP
+    Properties:
+     InstanceId: !Ref myloadbalancer
 
 
 
 
 
 
-      Subnets: !Refsubnets
+
+
+
+
+
 
 
 

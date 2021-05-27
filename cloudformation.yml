@@ -6,14 +6,14 @@ Parameters:
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access into the server
     Type: AWS::EC2::KeyPair::KeyName
-  VpcId:
-   Description: Enter vpc Id
-   Type: 'AWS::EC2::VPC::Id'
-   ConstraintDescription: Must be the valid vpc
-  SubnetId:
-   Description: Subnet Id
-   Type: 'AWS::EC2::Subnet::Id'
-   ConstraintDescription: must be the valid subnet id
+#  VpcId:
+ #  Description: Enter vpc Id
+  # Type: 'AWS::EC2::VPC::Id'
+   #ConstraintDescription: Must be the valid vpc
+#  SubnetId:
+ #  Description: Subnet Id
+  # Type: 'AWS::EC2::Subnet::Id'
+   #ConstraintDescription: must be the valid subnet id
 
 
 Mappings:
@@ -39,7 +39,7 @@ Resources:
         - AMI
       Tags:
         - Key: Name
-          Value: !Join [ '-', [ !Ref NameOfService, 'webserver' ,'1'] ]
+          Value: !Join [ '-', [ !Ref NameOfService, 'webserver-1' ,'ansible-master'] ]
       SecurityGroups:
         - !Ref LnSecurityGroup
 #       - !Ref SubnetId
@@ -126,6 +126,10 @@ Resources:
       - IpProtocol: tcp
         FromPort: 443
         ToPort: 443
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
         CidrIp: 0.0.0.0/0
       Tags:
         - Key: Name
