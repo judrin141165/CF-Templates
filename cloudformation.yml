@@ -1,11 +1,36 @@
 ---
+
+Description: >-
+    This Stack Create three backend servers connected to Loadblancer to distribute traffic
+    using round robin
+    One of the backend server is also configured as Ansible master for automation
+
+
+
 Parameters:
+
   NameOfService:
-    Description: The tag name associated with this EC2 instances.
+    Description: The tag name associated with this stack.
     Type: String
   KeyName:
     Description: Name of an existing EC2 KeyPair to enable SSH access into the server
     Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Description: EC2 Instance type
+    Type: String
+    Default: t2.micro
+  ExistingSecurityGroup:
+    Description: An existing security group ID (optional).
+    Default: NONE
+    Type: String
+    AllowedValues:
+      - default
+      - NONE
+Conditions:
+    CreateNewSecurityGroup: !Equals [!Ref ExistingSecurityGroup, NONE]
+
+
+
 #  VpcId:
  #  Description: Enter vpc Id
   # Type: 'AWS::EC2::VPC::Id'
@@ -178,6 +203,15 @@ Outputs:
     Value: !GetAtt
       - LnEC2InstanceNGINXLoadbalancer
       - PublicIp
+  LnSecurityGroupID:
+    Description: Name of the security Group
+    Value: !If [CreateNewSecurityGroup,!Ref LnSecurityGroup,!Ref ExistingSecurityGroup]
+
+
+
+
+
+
   WebsiteLink:
     Description: The Public DNS for the EC2 Instance
     Value: !Sub 'http://${LnEC2InstanceNGINXLoadbalancer.PublicDnsName}'

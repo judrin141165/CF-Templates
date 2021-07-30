@@ -15,9 +15,65 @@ Parameters:
     Type: String
     Default: db.t1.micro
 
-
+  Vpcname:
+    Description: Name of the  Vpc
+    Type: AWS::SSM::Parameter::Value<List<AWS::EC2::VPC::Id>>
+  Publicsubnetname:
+    Description: Name of the Subnet
+    Type: AWS::SSM::Parameter::Value<AWS::EC2::Subnet::Id>
 
 Resources:
+
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 172.31.0.0/16
+      EnableDnsSupport: yes
+      EnableDnsHostnames: yes
+      Tags:
+        - key: Name
+          Value: !Ref Vpcname
+  Publicsubnet:
+     Type: AWS::EC2::Subnet
+     Properties:
+       AvailabilityZone: 'us-east-2b'
+       CidrBlock: 172.31.16.0/20
+       VpcId: !Ref VPC
+       Tags:
+         - Key: Name
+           Value: !Ref Publicsubnetname
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+  VpcInternetgatewayAttachmeent:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+       InternetGatewayId: !Ref InternetGateway
+       VpcId: !Ref VPC
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      GatewayId: !Ref InternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicRouteTable
+
+  RouteTableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Publicsubnet
+      RouteTableId: !Ref PublicRouteTable
+
+
+
+
+
+
+
+
   S3Bucket:
      Type: 'AWS::S3::Bucket'
      Properties:
@@ -53,6 +109,7 @@ Resources:
       DBInstanceClass: !Ref DBClass
 
 
+
   ElasticIp:
     Type: AWS::EC2::EIP
     Properties:
@@ -84,6 +141,10 @@ Outputs:
     Value: !GetAtt
       - EC2Instance
       - PublicIp
+  Publicsubnet:
+
+
+
 
 
 
