@@ -1,0 +1,283 @@
+
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: Create Stack
+Parameters:
+  NameOfService:
+    Description: Tagname assosiated with this stack
+    Type: String
+  KeyName:
+    Description: Name of existing SSH keypair4
+    Type: AWS::EC2::KeyPair::KeyName
+    ConstraintDescription: Must be existing keypair
+  VPCName:
+    Description: Name of Vpc
+    Type: String
+    Default: MYVPC
+  MyInternetGateway:
+    Description: Name of Internetgateway
+    Type: String
+    Default: MyInternetGateway
+  #Publicsubnetname:
+    #Description: Name of Public Subnet
+    #Type: AWS::EC2::Subnet::Id
+    #Default: Publicsubnet
+
+
+
+
+
+  DBClass:
+    Description: DB instance class
+    Type: String
+    Default: db.t1.micro
+
+
+
+Resources:
+
+  MYVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 192.168.0.0/24
+      EnableDnsSupport: 'true'
+      EnableDnsHostnames: 'true'
+      Tags:
+        - Key: Name
+          Value: MYVPC
+
+  Publicsubnet:
+     Type: AWS::EC2::Subnet
+     Properties:
+
+       CidrBlock: 192.168.0.0/26
+       VpcId: !Ref MYVPC
+       Tags:
+         - Key: Name
+           Value: Publicsubnet
+       AvailabilityZone: "us-west-2c"
+
+
+  Privatesubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+
+      CidrBlock: 192.168.0.64/26
+      VpcId: !Ref MYVPC
+      Tags:
+        - Key: Name
+          Value: Privatesubnet
+      AvailabilityZone: "us-west-2b"
+  PublicsecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+
+    Properties:
+      GroupDescription: Public security Group
+      GroupName: PublicsecurityGroup
+      VpcId: !Ref MYVPC
+
+      SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: icmp
+            FromPort: 85
+            ToPort: 85
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 3005
+            ToPort: 3005
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 8080
+            ToPort: 8080
+            CidrIp: 0.0.0.0/0
+  PrivatesecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Private Security Group
+      VpcId: !Ref MYVPC
+      SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 80
+            ToPort: 80
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: icmp
+            FromPort: 85
+            ToPort: 85
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+
+            FromPort: 3306
+            ToPort: 3306
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp
+            FromPort: 443
+            ToPort: 443
+            CidrIp: 0.0.0.0/0
+
+  MYInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: MYInternetGateway
+  VpcInternetgatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+
+
+
+       VpcId: !Ref MYVPC
+       InternetGatewayId: !Ref MYInternetGateway
+
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref MYVPC
+  PublicRoute:
+    Type: AWS::EC2::Route
+    Properties:
+      GatewayId: !Ref MYInternetGateway
+      DestinationCidrBlock: 0.0.0.0/0
+      RouteTableId: !Ref PublicRouteTable
+
+  RouteTableAssosiation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref Publicsubnet
+      RouteTableId: !Ref PublicRouteTable
+
+
+  S3Bucket:
+     Type: AWS::S3::Bucket
+     Properties:
+
+        BucketName: judrinbucket
+        BucketEncryption:
+          ServerSideEncryptionConfiguration:
+            - ServerSideEncryptionByDefault:
+                SSEAlgorithm: 'aws:kms'
+                KMSMasterKeyID: KMS-KEY-ARN
+        AccessControl: PublicRead
+        WebsiteConfiguration:
+          IndexDocument: index.html
+          ErrorDocument: error.html
+        Tags:
+          - Key: name
+            Value: !Ref NameOfService
+  EC2Instance:
+     Type: AWS::EC2::Instance
+     Properties:
+        InstanceType: t2.micro
+        ImageId: ami-00f7e5c52c0f43726
+        InstanceInitiatedShutdownBehavior: stop
+        AvailabilityZone: "us-west-2c"
+        Tags:
+          - Key: Name
+            Value: EC2Instance
+        KeyName: !Ref KeyName
+        SecurityGroupIds:
+             - !Ref PublicsecurityGroup
+        SubnetId: !Ref Publicsubnet
+
+
+  DBInstance:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      Engine: mysql
+      DBInstanceClass: !Ref DBClass
+      BackupRetentionPeriod: 5
+      AvailabilityZone: "us-west-2b"
+      AllocatedStorage: 20
+      MasterUsername: password
+      MasterUserPassword: password
+
+      VPCSecurityGroups: !Ref PrivatesecurityGroup
+
+
+
+
+
+
+  Bastionhost:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:  ami-00f7e5c52c0f43726
+      InstanceInitiatedShutdownBehavior: stop
+      AvailabilityZone: "us-west-2c"
+      Tags:
+        - Key: Name
+          Value: Bastionhost
+      KeyName: !Ref KeyName
+      SecurityGroupIds:
+         - !Ref PublicsecurityGroup
+      SubnetId: !Ref Publicsubnet
+
+
+  EC2Ip1:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref EC2Instance
+
+  BastionIp:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref Bastionhost
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Outputs:
+  WebsiteURL:
+    Value: !GetAtt
+      - S3Bucket
+      - WebsiteURL
+  PublicIPinstance:
+    Value: !GetAtt
+      - EC2Instance
+      - PublicIp
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
