@@ -7,7 +7,7 @@ Parameters:
     Description: Tagname assosiated with this stack
     Type: String
   KeyName:
-    Description: Name of existing SSH keypair4
+    Description: Name of existing SSH keypair
     Type: AWS::EC2::KeyPair::KeyName
     ConstraintDescription: Must be existing keypair
   VPCName:

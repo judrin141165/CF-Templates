@@ -1,36 +1,30 @@
----
-AWSTemplateFormatVersion: "2010-09-09"
-
 Description: >-
-This stack create EC2 instance with Metadata
+This stack create EC2 instance
 
 Parameters:
+  InstanceType:
 
-  NameOfService:
-    Description: Tag name for this stack
+      Description: ec2 instance
+      Type: AWS::EC2::Image::Id
+      Default: t2.micro
+      AllowedValues:
+        - t2.micro
+  Security Group:
+    Description: SecurityGroup
     Type: String
+    Default: default
+
   KeyName:
     Description: SSH Keyname
     Type: AWS::EC2::KeyPair::KeyName
-    ConstraintDescription: Must be exsisting keypair
-  InstanceType:
-    Description: EC2 Instance Type
-    Type: AWS::EC2::Instance::Id
-
-    Default: t2.micro
-  Security Group:
-    Description: Security Group name
-    Type: AWS::EC2::SecurityGroup::Id
-    AllowedValues:
-      - default
-      - NONE
+    ConstraintDescription: must be existing Keypair
 
 
 
 Mappings:
   RegionMap:
     us-east-1:
-      AMI: ami-0ff8a91507f77f867
+      AMI: ami-02e136e904f3da870
 
 
 Resources:
@@ -47,15 +41,20 @@ Resources:
 
       KeyName: !Ref KeyName
       UserData:
-        Fn::Base64: object = {“a”:{“b”:{“c”:”d”}}}
-                    key = a/b/c
+        Fn::Base64: !Sub |
+          wget -O ddinstall.sh https://s3.amazonaws.com/dd-agent/scripts/install_script.sh
+                    export DD_API_KEY=$(aws secretsmanager get-secret-value --region eu-west-2 --secret-id ${DatadogAPIKeySecretArn} --query SecretString --output text | jq -r .DD_API_KEY)
+                    export DD_SITE=datadoghq.eu
+                    export DD_LOGS_ENABLED=true
+                    export DD_LOGS_CONFIG_USE_HTTP=true
+                    bash ./ddinstall.sh
+                    export DD_AGENT_MAJOR_VERSION=7 DD_API_KEY="<DATADOG_API_KEY>" bash -c "$(curl -L https://s3.amazonaws.com/dd-agent/scripts/install_script.sh)"
 
-                    object = {“x”:{“y”:{“z”:”a”}}}
-                    key = x/y/z
-                    value = a
+
+
   Launch Config:
     Type: AWS::EC2::LaunchTemplate
-    
+
     Metadata:
       BlockDeviceMappings:
         - BlockDeviceMapping
@@ -103,9 +102,43 @@ Resources:
         - TagSpecification
 
 
+  SecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow ssh to client host
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
 
 
 Outputs:
+  InstanceId:
+    Description: EC2 Instance ID
+    Value: !GetAtt
+      - LNEC2 instance
+      - AvailabilityZone
+
+
+
+  PublicIP:
+    Dsescription: EC2 Instance Public IP
+    Value: !GetAtt
+      - LNEC2 instance
+      - PublicIp
+  SecurityGroup:
+    Description: Security Group Name
+    Value: !GetAtt
+      - SecurityGroup
+      - VpcId
+
+
+
+
+
+
+
 
 
 

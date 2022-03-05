@@ -534,6 +534,7 @@ Resources:
         WaitOnResourceSignals: 'true'
   LaunchConfig:
     Type: 'AWS::AutoScaling::LaunchConfiguration'
+
     Metadata:
       'AWS::CloudFormation::Init':
         configSets:
