@@ -1,13 +1,30 @@
 ---
 
 Description: >-
-    This Stack Create three backend servers connected to Loadblancer to distribute traffic
+    This Stack Create three  EC2 instances  connected to Loadblancer to distribute traffic
     using round robin
-    One of the backend server is also configured as Ansible master for automation
+    In the future one  of the EC2 instances will be  configured as Ansible master for automation
 
 
 
 Parameters:
+
+  VPC:
+    Description: VPC-ID of your existing VPC
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: Must be existing VPC
+  PublicSUbnetId:
+    Type: List<AWS::EC2::Subnet::Id>
+    Description: Public Subnet
+    ConstraintDescription: Must be existing Subnet
+#########################################################
+#EC2 Instances and load balancer
+###########################################################
+
+
+
+
+
 
   NameOfService:
     Description: The tag name associated with this stack.
@@ -29,107 +46,74 @@ Parameters:
 Conditions:
     CreateNewSecurityGroup: !Equals [!Ref ExistingSecurityGroup, NONE]
 
-
-
-#  VpcId:
- #  Description: Enter vpc Id
-  # Type: 'AWS::EC2::VPC::Id'
-   #ConstraintDescription: Must be the valid vpc
-#  SubnetId:
- #  Description: Subnet Id
-  # Type: 'AWS::EC2::Subnet::Id'
-   #ConstraintDescription: must be the valid subnet id
-
-
 Mappings:
   RegionMap:
-    us-east-1:
-      AMI: ami-0ff8a91507f77f867
-    us-west-1:
-      AMI: ami-0577b787189839998
-    us-west-2:
-      AMI: ami-0518bb0e75d3619ca
     us-east-2:
-      AMI: ami-0ea050eeb8134114f
+      "HVM64": "ami-08b6f2a5c291246a0"
 
 Resources:
+
   LnEc2InstanceWebServer1:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.micro
-      ImageId:
-        Fn::FindInMap:
-        - RegionMap
-        - !Ref AWS::Region
-        - AMI
+      ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
+
       Tags:
         - Key: Name
           Value: !Join [ '-', [ !Ref NameOfService, 'webserver-1' ,'ansible-master'] ]
-      SecurityGroups:
+      SecurityGroupIds:
         - !Ref LnSecurityGroup
-#       - !Ref SubnetId
+
       KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+
+
+
 
   LnEc2InstanceWebServer2:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.micro
-      ImageId:
-        Fn::FindInMap:
-        - RegionMap
-        - !Ref AWS::Region
-        - AMI
+
+      ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
+
+
+
       Tags:
         - Key: Name
           Value: !Join [ '-', [ !Ref NameOfService, 'webserver' ,'2'] ]
-      SecurityGroups:
+      SecurityGroupIds:
         - !Ref LnSecurityGroup
-#       - !Ref SubnetId
+
+
       KeyName: !Ref KeyName
+      InstanceType: !Ref InstanceType
+
   LnEc2InstanceWebServer3:
     Type: AWS::EC2::Instance
     Properties:
-      InstanceType: t2.micro
-      ImageId:
-        Fn::FindInMap:
-        - RegionMap
-        - !Ref AWS::Region
-        - AMI
+
+      ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
+
+
+
       Tags:
         - Key: Name
           Value: !Join [ '-', [ !Ref NameOfService, 'webserver' ,'3'] ]
-      SecurityGroups:
+      SecurityGroupIds:
         - !Ref LnSecurityGroup
-#       - !Ref SubnetId
+
+
       KeyName: !Ref KeyName
-  LnEC2InstanceNGINXLoadbalancer:
-    Type: AWS::EC2::Instance
-    Properties:
-      InstanceType: t2.micro
-      ImageId:
-        Fn::FindInMap:
-          - RegionMap
-          - !Ref AWS::Region
-          - AMI
+      InstanceType: !Ref InstanceType
 
 
-
-
-
-      Tags:
-        - Key: Name
-          Value: !Join [ '-', [ !Ref NameOfService, 'nginx-load-balancer']]
-      SecurityGroups:
-        - !Ref LnSecurityGroup
-#       - !Ref SubnetId
-      KeyName: !Ref KeyName
 
 
   LnSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
       GroupDescription: Allow SSH to client host. Created using CloudFormation template
-#     VpcId: !Ref VpcId
+      VpcId: !Ref VPC
 
       SecurityGroupIngress:
       - IpProtocol: tcp
@@ -174,10 +158,8 @@ Resources:
     Type: AWS::EC2::EIP
     Properties:
       InstanceId: !Ref LnEc2InstanceWebServer3
-  LnElasticIp4:
-    Type: AWS::EC2::EIP
-    Properties:
-      InstanceId: !Ref LnEC2InstanceNGINXLoadbalancer
+
+
   
 Outputs:
   LnPublicIpAddressInstance1:
@@ -198,11 +180,7 @@ Outputs:
       - LnEc2InstanceWebServer3
       - PublicIp
 
-  LnEC2InstanceNGINXLoadbalancer:
-    Description: the Public IP address for Nginxloadbalancer
-    Value: !GetAtt
-      - LnEC2InstanceNGINXLoadbalancer
-      - PublicIp
+
   LnSecurityGroupID:
     Description: Name of the security Group
     Value: !If [CreateNewSecurityGroup,!Ref LnSecurityGroup,!Ref ExistingSecurityGroup]
@@ -212,6 +190,4 @@ Outputs:
 
 
 
-  WebsiteLink:
-    Description: The Public DNS for the EC2 Instance
-    Value: !Sub 'http://${LnEC2InstanceNGINXLoadbalancer.PublicDnsName}'
+
