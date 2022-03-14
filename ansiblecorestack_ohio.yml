@@ -5,7 +5,7 @@ Description: >-
     and EC2 launch template with user data and two security Groups
 
     one EC2 is created with launchtemplate another EC2 have metadata data and third EC2
-    instance is standard instance
+    instance is standard instance with CFN Get metadata helper script
 
 
     In the future one  of the EC2 instances will be  configured as Ansible master for automation
@@ -161,6 +161,7 @@ Resources:
     Type: AWS::EC2::Instance
     Metadata:
       'AWS::CloudFormation::Init':
+
         configSets:
           wordpress_install:
             - install_cfn
@@ -260,6 +261,7 @@ Resources:
                 httpd:
                   enabled: 'true'
                   ensureRunning: 'true'
+
     Properties:
       ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
 
@@ -279,8 +281,20 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
 
-      ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
 
+      ImageId: !FindInMap [RegionMap,!Ref AWS::Region,HVM64]
+      UserData: !Base64
+
+
+
+
+        cfn-get-metadata
+                          --key|k key \
+                          --stack|-s stack.name.or.id \
+                          --resource|-r logical.resource.id \
+                          --role IAM.role.name \
+                          --url|-u service.url \
+                          --region region
 
 
       Tags:
@@ -404,7 +418,7 @@ Resources:
       InstanceId: !Ref LnEc2InstanceWebServer3
 
 
-  
+
 Outputs:
   LnPublicIpAddressInstance1:
     Description: The Public IP address for EC2 instances
@@ -429,7 +443,12 @@ Outputs:
     Description: Name of the security Group
     Value: !If [CreateNewSecurityGroup,!Ref LnSecurityGroup,!Ref ExistingSecurityGroup]
 
+  Launchtemplate:
+    Description: Launchtemplate Details
+    Value: !GetAtt
 
+      - MYLaunchtemplate
+      - LatestVersionNumber
 
 
 
