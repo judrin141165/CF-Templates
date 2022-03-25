@@ -1,0 +1,27 @@
+"AWSTemplateVersion": "2010-09-09"
+"Description": "ASG Group Update"
+Parameters:
+  VPC Name:
+    Name of VPC: Name of VPC
+    Type: AWS::EC2::VPC::Id
+    ConstraintDescription: Must be existing VPC
+  Subnet Name:
+    Name of subnet: Name of subnets
+    Type: List<AWS::EC2::Subnet::Id>
+
+Mappings:
+  Mappings:
+    RegionMap:
+      us-east-1:
+        AMI: ami-0ff8a91507f77f867
+      us-west-1:
+        AMI: ami-0577b787189839998
+      us-west-2:
+        AMI: ami-0518bb0e75d3619ca
+      us-east-2:
+        AMI: ami-0ea050eeb8134114f
+      eu-west-1:
+        AMI: ami-02b4e72b17337d6c1
+
+
+

@@ -1,0 +1,219 @@
+---
+
+Description: >-
+    This Stack Create three backend servers connected to Loadblancer to distribute traffic
+    using round robin
+    One of the backend server is also configured as Ansible master for automation
+
+
+
+Parameters:
+
+  NameOfService:
+    Description: The tag name associated with this stack.
+    Type: String
+  KeyName:
+    Description: Name of an existing EC2 KeyPair to enable SSH access into the server
+    Type: AWS::EC2::KeyPair::KeyName
+  InstanceType:
+    Description: EC2 Instance type
+    Type: String
+    Default: t2.micro
+  ExistingSecurityGroup:
+    Description: An existing security group ID (optional).
+    Default: NONE
+    Type: String
+    AllowedValues:
+      - default
+      - NONE
+Conditions:
+    CreateNewSecurityGroup: !Equals [!Ref ExistingSecurityGroup, NONE]
+
+
+
+#  VpcId:
+ #  Description: Enter vpc Id
+  # Type: 'AWS::EC2::VPC::Id'
+   #ConstraintDescription: Must be the valid vpc
+#  SubnetId:
+ #  Description: Subnet Id
+  # Type: 'AWS::EC2::Subnet::Id'
+   #ConstraintDescription: must be the valid subnet id
+
+
+Mappings:
+  RegionMap:
+    us-east-1:
+      AMI: ami-0ff8a91507f77f867
+    us-west-1:
+      AMI: ami-0577b787189839998
+    us-west-2:
+      AMI: ami-0518bb0e75d3619ca
+    us-east-2:
+      AMI: ami-0ea050eeb8134114f
+    eu-west-1:
+      AMI: ami-02b4e72b17337d6c1
+
+Resources:
+  LnEc2InstanceWebServer1:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:
+        Fn::FindInMap:
+        - RegionMap
+        - !Ref AWS::Region
+        - AMI
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref NameOfService, 'webserver-1' ,'ansible-master'] ]
+      SecurityGroups:
+        - !Ref LnSecurityGroup
+#       - !Ref SubnetId
+      KeyName: !Ref KeyName
+
+  LnEc2InstanceWebServer2:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:
+        Fn::FindInMap:
+        - RegionMap
+        - !Ref AWS::Region
+        - AMI
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref NameOfService, 'webserver' ,'2'] ]
+      SecurityGroups:
+        - !Ref LnSecurityGroup
+#       - !Ref SubnetId
+      KeyName: !Ref KeyName
+  LnEc2InstanceWebServer3:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:
+        Fn::FindInMap:
+        - RegionMap
+        - !Ref AWS::Region
+        - AMI
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref NameOfService, 'webserver' ,'3'] ]
+      SecurityGroups:
+        - !Ref LnSecurityGroup
+#       - !Ref SubnetId
+      KeyName: !Ref KeyName
+  LnEC2InstanceNGINXLoadbalancer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      ImageId:
+        Fn::FindInMap:
+          - RegionMap
+          - !Ref AWS::Region
+          - AMI
+
+
+
+
+
+      Tags:
+        - Key: Name
+          Value: !Join [ '-', [ !Ref NameOfService, 'nginx-load-balancer']]
+      SecurityGroups:
+        - !Ref LnSecurityGroup
+#       - !Ref SubnetId
+      KeyName: !Ref KeyName
+
+
+  LnSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow SSH to client host. Created using CloudFormation template
+#     VpcId: !Ref VpcId
+
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 3000
+        ToPort: 3000
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 3005
+        ToPort: 3005
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: 8080
+        ToPort: 8080
+        CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: ansible-core-keypair
+        - Key: Description
+
+          Value: Security Group created for SSH and HTTP access to instances.
+  LnElasticIp1:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref LnEc2InstanceWebServer1
+  LnElasticIp2:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref LnEc2InstanceWebServer2
+  LnElasticIp3:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref LnEc2InstanceWebServer3
+  LnElasticIp4:
+    Type: AWS::EC2::EIP
+    Properties:
+      InstanceId: !Ref LnEC2InstanceNGINXLoadbalancer
+
+Outputs:
+  LnPublicIpAddressInstance1:
+    Description: The Public IP address for EC2 instances
+    Value: !GetAtt
+      - LnEc2InstanceWebServer1
+      - PublicIp
+
+
+  LnPublicIpAddressInstance2:
+    Description: The Public IP address for EC2 instances
+    Value: !GetAtt
+      - LnEc2InstanceWebServer2
+      - PublicIp
+  LnPublicIpAddressInstance3:
+    Description: The Public IP address for EC2 instances
+    Value: !GetAtt
+      - LnEc2InstanceWebServer3
+      - PublicIp
+
+  LnEC2InstanceNGINXLoadbalancer:
+    Description: the Public IP address for Nginxloadbalancer
+    Value: !GetAtt
+      - LnEC2InstanceNGINXLoadbalancer
+      - PublicIp
+  LnSecurityGroupID:
+    Description: Name of the security Group
+    Value: !If [CreateNewSecurityGroup,!Ref LnSecurityGroup,!Ref ExistingSecurityGroup]
+
+
+
+
+
+
+  WebsiteLink:
+    Description: The Public DNS for the EC2 Instance
+    Value: !Sub 'http://${LnEC2InstanceNGINXLoadbalancer.PublicDnsName}'
